@@ -1,26 +1,26 @@
-[English](https://gitlab.com/tiesen243/rozumari/blob/dev/docs/README.en.md) | [Tiếng Việt](https://github.com/tiesen243/rozumari/blob/dev/docs/README.vi.md)
+[English](https://gitlab.com/tiesen243/rozumari/blob/dev/docs/README.en.md) | [Tiếng Việt](https://gitlab.com/tiesen243/rozumari/blob/dev/docs/README.vi.md)
 
 # Rozumari (ローズマリー): Thiết kế hộp thuốc thông minh hỗ trợ người già và trẻ nhỏ
 
 <p align="center">
-    <a href="https://gitlab.com/tiesen243/rozumari/releases">
-        <img src="https://img.shields.io/gitlab/package-json/v/tiesen243/rozumari?filename=apps/api/package.json&label=version@api" alt="Phiên bản API">
-    </a>
-    <a href="https://gitlab.com/tiesen243/rozumari/releases">
-        <img src="https://img.shields.io/gitlab/package-json/v/tiesen243/rozumari?filename=apps/web/package.json&label=version@web" alt="Phiên bản Web">
-    </a>
-    <a href="https://gitlab.com/tiesen243/rozumari/releases">
-        <img src="https://img.shields.io/gitlab/package-json/v/tiesen243/rozumari?filename=apps/mobile/package.json&label=version@mobile" alt="Phiên bản Mobile">
-    </a>
-    <a href="https://gitlab.com/tiesen243/rozumari/releases">
-        <img src="https://img.shields.io/gitlab/package-json/v/tiesen243/rozumari?filename=packages/firmware/package.json&label=version@firmware" alt="Phiên bản Firmware">
-    </a>
-    <a href="https://gitlab.com/tiesen243/rozumari/releases">
-      <img src="https://img.shields.io/gitlab/package-json/v/tiesen243/rozumari?filename=packages/firmware/package.json&label=version@eda" alt="Phiên bản EDA">
-    </a>
-    <a href="LICENSE">
-      <img src="https://img.shields.io/gitlab/license/tiesen243/rozumari" alt="Giấy phép">
-    </a>
+  <a href="https://gitlab.com/tiesen243/rozumari/-/releases">
+    <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgitlab.com%2Ftiesen243%2Frozumari%2F-%2Fraw%2Fdev%2Fapps%2Fapi%2Fpackage.json&query=version&label=version%40api" alt="Version API">
+  </a>
+  <a href="https://gitlab.com/tiesen243/rozumari/-/releases">
+    <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgitlab.com%2Ftiesen243%2Frozumari%2F-%2Fraw%2Fdev%2Fapps%2Fweb%2Fpackage.json&query=version&label=version%40web" alt="Version Web">
+  </a>
+  <a href="https://gitlab.com/tiesen243/rozumari/-/releases">
+    <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgitlab.com%2Ftiesen243%2Frozumari%2F-%2Fraw%2Fdev%2Fapps%2Fmobile%2Fpackage.json&query=version&label=version%40mobile" alt="Version Mobile">
+  </a>
+  <a href="https://gitlab.com/tiesen243/rozumari/-/releases">
+    <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgitlab.com%2Ftiesen243%2Frozumari%2F-%2Fraw%2Fdev%2Fpackages%2Ffirmware%2Fpackage.json&query=version&label=version%40firmware" alt="Version Firmware">
+  </a>
+  <a href="https://gitlab.com/tiesen243/rozumari/-/releases">
+    <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgitlab.com%2Ftiesen243%2Frozumari%2F-%2Fraw%2Fdev%2Fpackages%2Feda%2Fpackage.json&query=version&label=version%40eda" alt="Version EDA">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/gitlab/license/tiesen243/rozumari" alt="License">
+  </a>
 </p>
 
 ## **Tổng quan**

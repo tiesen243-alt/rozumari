@@ -1,4 +1,4 @@
-[English](https://gitlab.com/tiesen243/rozumari/blob/dev/docs/CONTRIBUTING.md) | [Tiếng Việt](https://github.com/tiesen243/rozumari/blob/dev/docs/CONTRIBUTING.vi.md)
+[English](https://gitlab.com/tiesen243/rozumari/blob/dev/docs/CONTRIBUTING.md) | [Tiếng Việt](https://gitlab.com/tiesen243/rozumari/blob/dev/docs/CONTRIBUTING.vi.md)
 
 # Hướng dẫn đóng góp cho dự án
 
