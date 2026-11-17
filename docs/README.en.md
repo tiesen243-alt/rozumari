@@ -1,24 +1,24 @@
-[English](https://github.com/tiesen243/rozumari/blob/dev/docs/README.en.md) | [Tiếng Việt](https://github.com/tiesen243/rozumari/blob/dev/docs/README.vi.md)
+[English](https://gitlab.com/tiesen243/rozumari/blob/dev/docs/README.en.md) | [Tiếng Việt](https://github.com/tiesen243/rozumari/blob/dev/docs/README.vi.md)
 
 # Rozumari (ローズマリー): Design of an Assistive Smart Pillbox for the Elderly and Children
 
 <p align="center">
-  <a href="https://github.com/tiesen243/rozumari/releases?q=%22%40rozumari%2Fapi%22&expanded=true">
-    <img src="https://img.shields.io/github/package-json/v/tiesen243/rozumari?filename=apps/api/package.json&label=version@api" alt="Version API">
+  <a href="https://gitlab.com/tiesen243/rozumari/releases?q=%22%40rozumari%2Fapi%22&expanded=true">
+    <img src="https://img.shields.io/gitlab/package-json/v/tiesen243/rozumari?filename=apps/api/package.json&label=version@api" alt="Version API">
   </a>
-  <a href="https://github.com/tiesen243/rozumari/releases?q=%22%40rozumari%2Fweb%22&expanded=true">
-    <img src="https://img.shields.io/github/package-json/v/tiesen243/rozumari?filename=apps/web/package.json&label=version@web" alt="Version Web">
+  <a href="https://gitlab.com/tiesen243/rozumari/releases?q=%22%40rozumari%2Fweb%22&expanded=true">
+    <img src="https://img.shields.io/gitlab/package-json/v/tiesen243/rozumari?filename=apps/web/package.json&label=version@web" alt="Version Web">
   </a>
-  <a href="https://github.com/tiesen243/rozumari/releases?q=%22%40rozumari%2Fmobile%22&expanded=true">
-    <img src="https://img.shields.io/github/package-json/v/tiesen243/rozumari?filename=apps/mobile/package.json&label=version@mobile" alt="Version Mobile">
+  <a href="https://gitlab.com/tiesen243/rozumari/releases?q=%22%40rozumari%2Fmobile%22&expanded=true">
+    <img src="https://img.shields.io/gitlab/package-json/v/tiesen243/rozumari?filename=apps/mobile/package.json&label=version@mobile" alt="Version Mobile">
   </a>
-  <a href="https://github.com/tiesen243/rozumari/releases?q=%22%40rozumari%2Ffirmware%22&expanded=true">
-    <img src="https://img.shields.io/github/package-json/v/tiesen243/rozumari?filename=packages/firmware/package.json&label=version@firmware" alt="Version Firmware">
-  <a href="https://github.com/tiesen243/rozumari/releases?q=%22%40rozumari%2Feda%22&expanded=true">
-    <img src="https://img.shields.io/github/package-json/v/tiesen243/rozumari?filename=packages/eda/package.json&label=version@eda" alt="Version EDA">
+  <a href="https://gitlab.com/tiesen243/rozumari/releases?q=%22%40rozumari%2Ffirmware%22&expanded=true">
+    <img src="https://img.shields.io/gitlab/package-json/v/tiesen243/rozumari?filename=packages/firmware/package.json&label=version@firmware" alt="Version Firmware">
+  <a href="https://gitlab.com/tiesen243/rozumari/releases?q=%22%40rozumari%2Feda%22&expanded=true">
+    <img src="https://img.shields.io/gitlab/package-json/v/tiesen243/rozumari?filename=packages/eda/package.json&label=version@eda" alt="Version EDA">
   </a>
   <a href="LICENSE">
-    <img src="https://img.shields.io/github/license/tiesen243/rozumari" alt="License">
+    <img src="https://img.shields.io/gitlab/license/tiesen243/rozumari" alt="License">
   </a>
 </p>
 
@@ -92,4 +92,4 @@ The **Rozumari** system, provides a comprehensive, hardware-software integrated 
 
 ## License
 
-This project is open-source and available under the Apache License 2.0. See the [LICENSE](https://github.com/tiesen243/rozumari/blob/dev/LICENSE) file for more details.
+This project is open-source and available under the Apache License 2.0. See the [LICENSE](https://gitlab.com/tiesen243/rozumari/blob/dev/LICENSE) file for more details.
