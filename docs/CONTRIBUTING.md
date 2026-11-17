@@ -1,4 +1,4 @@
-[English](https://github.com/tiesen243/graduation-thesis/blob/dev/docs/CONTRIBUTING.md) | [Tiếng Việt](https://github.com/tiesen243/graduation-thesis/blob/dev/docs/CONTRIBUTING.vi.md)
+[English](https://github.com/tiesen243/rozumari/blob/dev/docs/CONTRIBUTING.md) | [Tiếng Việt](https://github.com/tiesen243/rozumari/blob/dev/docs/CONTRIBUTING.vi.md)
 
 # Contributing to project
 
@@ -11,7 +11,7 @@ As this project involves both **Hardware (Mechanical/Circuitry)** and **Software
 Before making any changes, please check the [Issues](https://github.com/your-username/your-repo/issues) list:
 
 - **If an issue exists:** Leave a comment letting us know you are working on it to avoid duplicated effort.
-- **If no issue exists:** Please [open a new issue](https://github.com/tiesen243/graduation-thesis/issues/new/choose) first to describe the bug you found or the feature you are proposing.
+- **If no issue exists:** Please [open a new issue](https://github.com/tiesen243/rozumari/issues/new/choose) first to describe the bug you found or the feature you are proposing.
 
 ## 2. Our Development Process
 

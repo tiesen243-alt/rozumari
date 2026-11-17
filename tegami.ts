@@ -13,7 +13,7 @@ const paper = tegami({
 
   plugins: [
     github({
-      repo: 'tiesen243/graduation-thesis',
+      repo: 'tiesen243/rozumari',
       versionPr: { base: 'dev' },
     }),
   ],

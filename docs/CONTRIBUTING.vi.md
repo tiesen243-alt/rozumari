@@ -1,4 +1,4 @@
-[English](https://github.com/tiesen243/graduation-thesis/blob/dev/docs/CONTRIBUTING.md) | [Tiếng Việt](https://github.com/tiesen243/graduation-thesis/blob/dev/docs/CONTRIBUTING.vi.md)
+[English](https://github.com/tiesen243/rozumari/blob/dev/docs/CONTRIBUTING.md) | [Tiếng Việt](https://github.com/tiesen243/rozumari/blob/dev/docs/CONTRIBUTING.vi.md)
 
 # Hướng dẫn đóng góp cho dự án
 
@@ -11,7 +11,7 @@ Vì dự án này bao gồm cả **Phần cứng (Cơ khí/Mạch điện)** và
 Trước khi thực hiện bất kỳ thay đổi nào, vui lòng kiểm tra danh sách [Issues](https://github.com/your-username/your-repo/issues):
 
 - **Nếu đã có issue:** Hãy để lại bình luận cho chúng tôi biết bạn đang làm việc với issue đó để tránh việc trùng lặp công sức.
-- **Nếu chưa có issue:** Vui lòng [mở một issue mới](https://github.com/tiesen243/graduation-thesis/issues/new/choose) trước để mô tả lỗi bạn tìm thấy hoặc tính năng bạn đang đề xuất.
+- **Nếu chưa có issue:** Vui lòng [mở một issue mới](https://github.com/tiesen243/rozumari/issues/new/choose) trước để mô tả lỗi bạn tìm thấy hoặc tính năng bạn đang đề xuất.
 
 ## 2. Quy trình phát triển
 
