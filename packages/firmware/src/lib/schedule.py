@@ -1,100 +1,71 @@
 import json
+import os
 
-from lib.api import Api
-from lib.i18n import t
+from lib.singleton import Singleton
 
 
-class Schedule:
-    __instance: Schedule | None = None
+class Schedule(Singleton):
+    def __init__(self, path: str = "/data/schedule.json") -> None:
+        super().__init__()
+        if hasattr(self, "_data"):
+            return
 
-    _schedules: list[dict]
-    _api: Api
+        self._path = path
+        self._data: list = []
+        self._ensure_dir()
 
-    def __init__(self, file_path: str) -> None:
-        self._path = file_path
-        self._schedules = []
-        self._api = Api.create()
-
-    def load_schedules(self) -> bool:
-        """
-        Load the schedules from the JSON persistence store.
-
-        Returns:
-            True if load was successful, False otherwise.
-        """
+    def load(self) -> None:
         try:
             with open(self._path, "r") as f:
-                data = json.load(f)
-                if isinstance(data, list):
-                    self._schedules = data
-                    return True
-                else:
-                    print(t("schedule.data_not_list", path=self._path))
-                    return False
-        except Exception as e:
-            print(t("schedule.load_error", path=self._path, error=e))
-            return False
+                loaded = json.load(f)
 
-    def get_schedules(self) -> list[dict]:
-        """
-        Get the list of schedules.
+            if isinstance(loaded, list):
+                self._data = loaded
+            else:
+                self._data = []
+        except OSError:
+            self._data = []
+            self.save()
+        except Exception:
+            self._data = []
 
-        Returns:
-            List of schedule dictionaries.
-        """
-        if not self._schedules or len(self._schedules) == 0:
-            _ = self.load_schedules()
-        return self._schedules
-
-    async def update_status(self, schedule_id: str, new_status: str) -> bool:
-        """
-        Update the status of a specific schedule by its ID.
-
-        Args:
-            schedule_id: The ID of the schedule to update.
-            new_status: The new status to set for the schedule.
-
-        Returns:
-            True if update was successful, False otherwise.
-        """
-        update_success = False
-
-        for schedule in self._schedules:
-            if schedule.get("id") == schedule_id:
-                schedule["status"] = new_status
-                update_success = self.save_schedules()
-                break
-
-        _ = await self._api.post(
-            f"/api/schedules/{schedule_id}/update-status",
-            data={"status": new_status},
-        )
-
-        return update_success
-
-    def save_schedules(self, schedules: list[dict] | None = None) -> bool:
-        """
-        Save the schedules to the JSON persistence store.
-
-        Args:
-            schedules: Optional list of schedules to save. If None, saves the current schedules.
-
-        Returns:
-            True if save was successful, False otherwise.
-        """
-        if schedules is not None:
-            self._schedules = schedules
-
+    def save(self) -> bool:
         try:
             with open(self._path, "w") as f:
-                json.dump(self._schedules, f)
+                json.dump(self._data, f)
             return True
-        except Exception as e:
-            print(t("schedule.save_error", path=self._path, error=e))
+        except Exception:
             return False
 
-    @classmethod
-    def create(cls, file_path: str = "/data/schedules.json") -> Schedule:
-        if cls.__instance is None:
-            cls.__instance = cls(file_path)
-        return cls.__instance
+    def update(self, schedules: list) -> None:
+        if isinstance(schedules, list):
+            self._data = schedules
+            self.save()
+
+    @property
+    def schedules(self) -> list:
+        return self._data
+
+    @property
+    def pending_schedules(self) -> list:
+        return [s for s in self._data if s.get("status") == "pending"]
+
+    def update_status(self, schedule_id: str, new_status: str) -> bool:
+        updated = False
+        for s in self._data:
+            if s.get("id") == schedule_id:
+                s["status"] = new_status
+                updated = True
+                break
+        if updated:
+            self.save()
+        return updated
+
+    def _ensure_dir(self) -> None:
+        folder = self._path.rpartition("/")[0]
+        if not folder:
+            return
+        try:
+            os.mkdir(folder)
+        except OSError:
+            pass

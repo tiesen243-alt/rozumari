@@ -1,282 +1,297 @@
 import asyncio
+import time
 
-from machine import PWM, Pin
+from machine import Pin
+from micropython import const
 
-from lib.api import Api
 from lib.config import Config
-from lib.i18n import t
-from lib.pins import Pins
-from lib.schedule import Schedule
-from modules.servo import Servo
-from modules.stepper import Stepper
-from services.display import Display
+from lib.constants import (
+    BUZZER,
+    SENSOR_CHECK,
+    SENSOR_DROP,
+    SERVO00,
+    SERVO01,
+    SERVO10,
+    SERVO11,
+    STEPPER_DISCARD,
+    STEPPER_DRAWER,
+)
+from lib.i18n import translate as _t
+from lib.logger import Logger
+from lib.picozero import Servo, Speaker, Stepper
+from lib.singleton import Singleton
+from modules.button import Button
+from services.notify import Notify
+
+try:
+    from typing import TypedDict
+
+    class Item(TypedDict):
+        slot: str
+        medicine: str
+        quantity: int
+        isRequired: bool
+except Exception:
+    pass
+
+SERVO_SLOW_SPEED = const(0.56)
+DROP_IRQ_TRIGGER = Pin.IRQ_FALLING
 
 
-class Drop:
-    __instance: Drop | None = None
-
-    _api: Api
-    _servo: Servo
-    _stepper: Stepper
-    _schedule: Schedule
-    _display: Display
-
-    _buzzer: PWM
-    _sensor_pin: Pin
-    _sensor_check_detected: bool
-
-    _buzzer_enable: bool
-    _open_timeout: int
-    _close_timeout: int
-
+class Drop(Singleton):
     def __init__(self) -> None:
-        self._api = Api.create()
-        self._servo = Servo.create()
-        self._stepper = Stepper.create()
-        self._schedule = Schedule.create()
-        self._display = Display.create()
+        super().__init__()
+        if hasattr(self, "_servos"):
+            return
 
-        pins = Pins.create()
-        self._buzzer = pins.buzzer
-        self._sensor_pin = pins.sensor_check
-        self._sensor_check_detected = False
+        self._logger = Logger("Drop")
+        self._config = Config()
+        self._notify = Notify()
 
-        config = Config.create()
-        timeouts = config.get("timeouts", {})
-        self._buzzer_enable = False
-        self._open_timeout = timeouts.get("open", 5)
-        self._close_timeout = timeouts.get("close", 5)
-
-        asyncio.create_task(self._buzzer_task())
-
-    async def _buzzer_task(self) -> None:
-        """
-        Asynchronous task to control the buzzer based on the _buzzer_enable flag.
-        This task runs indefinitely and checks the _buzzer_enable flag. If the flag is set to True,
-
-        Returns:
-            None
-        """
-        while True:
-            if not self._buzzer_enable:
-                self._buzzer.duty_u16(0)
-                await asyncio.sleep(0.1)
-                continue
-
-            self._buzzer.duty_u16(32768)
-            await asyncio.sleep(0.5)
-            self._buzzer.duty_u16(0)
-            await asyncio.sleep(0.5)
-
-    async def _deduct_medicine_capacity(self, dispensed_items: list[dict]) -> None:
-        """
-        Deducts the actual capacity of dispensed items from the device's storage slots.
-
-        Args:
-            dispensed_items: A list of dictionaries containing information about the dispensed items,
-                                including the slot and quantity.
-
-        Returns:
-            None
-        """
-        slots_payload = [
-            {"position": item["slot"], "capacity": item["quantity"]}
-            for item in dispensed_items
-            if item.get("quantity", 0) > 0
-        ]
-
-        if slots_payload:
-            print(t("drop.deducting", slots=slots_payload))
-            await self._api.post(
-                "/api/devices/update-capacity",
-                data={
-                    "mode": "subtraction",
-                    "slots": slots_payload,
-                },
-            )
-
-    async def _handle_post_dispense_sequence(self) -> bool:
-        """
-        Handles the post-dispense sequence, including opening the drawer, waiting for retrieval,
-        closing the drawer, opening the discard flap, waiting for discard, and closing the discard flap.
-
-        Returns:
-            True if the discard check is clear (no items detected in the discard bin), False otherwise
-        """
-        print(t("drop.opening_drawer"))
-        await self._stepper.move_drawer(deg=60)
-        self._buzzer_enable = True
-
-        print(t("drop.waiting_retrieve", seconds=self._open_timeout))
-        await asyncio.sleep(self._open_timeout)
-
-        print(t("drop.closing_drawer"))
-        await self._stepper.move_drawer(deg=-60)
-        self._buzzer_enable = False
-
-        # Attach interrupt to monitor discard bin before opening flap
-        self._sensor_check_detected = False
-        _ = self._sensor_pin.irq(
-            trigger=Pin.IRQ_FALLING,
-            handler=lambda pin: setattr(self, "_sensor_check_detected", True),
-        )
-
-        print(t("drop.opening_discard"))
-        await self._stepper.move_discard(deg=25)
-
-        print(t("drop.waiting_discard", seconds=self._close_timeout))
-        await asyncio.sleep(self._close_timeout)
-
-        print(t("drop.closing_discard"))
-        await self._stepper.move_discard(deg=-25)
-
-        # Disable sensor interrupt after check window completes
-        _ = self._sensor_pin.irq(handler=None)
-
-        if self._sensor_check_detected:
-            print(t("drop.not_taken_error"))
-            return False
-
-        print(t("drop.discard_check_clear"))
-        return True
-
-    async def execute(self, items: list[dict], schedule_id: str | None = None) -> bool:
-        """
-        Execute the dispensing process for a list of items, handling required and optional failures,
-        and managing the post-dispense sequence.
-
-        Args:
-            items: A list of dictionaries containing information about the items to dispense,
-                    including the slot, quantity, and whether the item is required.
-            schedule_id: An optional schedule ID associated with the dispensing process.
-
-        Returns:
-            True if the dispensing process was successful (including optional failures), False otherwise.
-        """
-        required_failures = []
-        optional_failures = []
-        dispensed_successfully = []
-
-        for item in items:
-            slot = item.get("slot")
-            quantity = item.get("quantity", 1)
-            is_required = item.get("isRequired", True)
-            if not slot:
-                print(t("drop.invalid_item", item=item))
-                continue
-
-            print(t("drop.dispensing", slot=slot, quantity=quantity))
-
-            success, actual_qty = await self._servo.drop(slot=slot, quantity=quantity)
-            if actual_qty > 0:
-                dispensed_successfully.append({"slot": slot, "quantity": actual_qty})
-
-            if not success:
-                failure = {
-                    "slot": slot,
-                    "medicine": item.get("medicine"),
-                    "quantity": max(0, quantity - actual_qty),
-                }
-                if is_required:
-                    required_failures.append(failure)
-                else:
-                    optional_failures.append(failure)
-            await asyncio.sleep(1)
-
-        # Deduct actual capacity immediately for items physically dropped out of storage slots
-        if dispensed_successfully:
-            await self._deduct_medicine_capacity(dispensed_successfully)
-
-        payload = {}
-        if required_failures:
-            payload["required_failures"] = required_failures
-        if optional_failures:
-            payload["optional_failures"] = optional_failures
-
-        data = {
-            "level": "error",
-            "title": t("notification.drop_failure"),
-            "payload": payload,
+        self._servos: dict[str, Servo] = {
+            "0-0": Servo(SERVO00),
+            "0-1": Servo(SERVO01),
+            "1-0": Servo(SERVO10),
+            "1-1": Servo(SERVO11),
         }
 
-        if schedule_id:
-            data["scheduleId"] = schedule_id
-            data["body"] = t("notification.schedule_required_failed")
-        else:
-            data["scheduleId"] = None
-            data["body"] = t("notification.required_failed")
+        self._stepper_drawer = Stepper(STEPPER_DRAWER)
+        self._stepper_discard = Stepper(STEPPER_DISCARD)
 
-        if required_failures:
-            print(t("drop.required_failed", count=len(required_failures)))
-            await self._api.post("/api/notifications/send", data=data)
-            if schedule_id:
-                _ = await self._schedule.update_status(schedule_id, "failed")
-            self._display.show_result(
-                False,
-                t("lcd.auto_failed") if schedule_id else t("lcd.manual_failed"),
-                t("lcd.drop_item_failed"),
+        self._sensor_drop = Pin(SENSOR_DROP, Pin.IN, Pin.PULL_UP)
+        self._sensor_check = Pin(SENSOR_CHECK, Pin.IN, Pin.PULL_UP)
+
+        self._buzzer = Speaker(BUZZER)
+        self._button = Button()
+
+        self._drop_count = 0
+        self._last_drop_ms = 0
+        self._check_detected = False
+        self._last_check_ms = 0
+
+        self.optional_failures: list[Item] = []
+        self.required_failures: list[Item] = []
+
+        self._sensor_drop.irq(trigger=DROP_IRQ_TRIGGER, handler=self._on_pill_drop)
+
+    def _on_pill_drop(self, pin: Pin) -> None:
+        now = time.ticks_ms()
+        if time.ticks_diff(now, self._last_drop_ms) < 200:
+            return
+        if pin.value() == 0:
+            self._last_drop_ms = now
+            self._drop_count += 1
+
+    def _on_pill_check(self, pin: Pin) -> None:
+        now = time.ticks_ms()
+        if time.ticks_diff(now, self._last_check_ms) < 200:
+            return
+        if pin.value() == 0:
+            self._last_check_ms = now
+            self._check_detected = True
+
+    async def execute(
+        self, items: "list[Item] | list[dict]", schedule_id: str | None = None
+    ) -> bool:
+        self.optional_failures.clear()
+        self.required_failures.clear()
+
+        drop_timeout = int(self._config.timeout.get("drop", 5))
+        open_timeout = int(self._config.timeout.get("open", 10))
+        close_timeout = int(self._config.timeout.get("close", 10))
+
+        for item in items:
+            slot = str(item.get("slot", ""))
+            medicine = str(item.get("medicine", "Unknown"))
+            quantity = int(item.get("quantity", 1))
+            is_required = bool(item.get("isRequired", True))
+
+            if not await self._dispense_slot(slot, quantity, drop_timeout):
+                typed_item: Item = {
+                    "slot": slot,
+                    "quantity": quantity,
+                    "medicine": medicine,
+                    "isRequired": is_required,
+                }
+                if is_required:
+                    self.required_failures.append(typed_item)
+                    self._logger.error(
+                        f"Drop failed for REQUIRED item at slot {slot} (qty: {quantity})!"
+                    )
+                else:
+                    self.optional_failures.append(typed_item)
+                    self._logger.warning(
+                        f"Drop failed for OPTIONAL item at slot {slot} (qty: {quantity}). Continuing..."
+                    )
+
+            await asyncio.sleep_ms(500)
+
+        if self.required_failures:
+            msg = _t("notify_required_failures", count=len(self.required_failures))
+
+            self._logger.error(msg)
+            await self._notify.send(
+                "error",
+                _t("notify_schedule_failed" if schedule_id else "notify_drop_failed"),
+                msg,
+                {
+                    "required_failures": self.required_failures,
+                    "optional_failures": self.optional_failures,
+                },
+                schedule_id,
             )
             return False
 
-        # Open drawer and handle discard sequence
-        discard_clean = await self._handle_post_dispense_sequence()
-        if not discard_clean:
-            data["level"] = "error"
-            data["title"] = t("notification.medication_not_taken")
-            data["body"] = t("notification.patient_not_taken")
-
-            if schedule_id:
-                await self._schedule.update_status(schedule_id, "failed")
-
-            await self._api.post("/api/notifications/send", data=data)
-            self._display.show_result(
-                False,
-                t("lcd.auto_failed") if schedule_id else t("lcd.manual_failed"),
-                t("lcd.drop_not_taken"),
-            )
-            return False
-
-        # Process optional failures or clean success
-        if optional_failures:
-            print(t("drop.success_warning", count=len(optional_failures)))
-            data["level"] = "warning"
-            data["title"] = t("notification.schedule_warning")
-            if schedule_id:
-                await self._schedule.update_status(schedule_id, "completed")
-                data["body"] = t("notification.schedule_optional_warning")
-            else:
-                data["body"] = t("notification.optional_warning")
-            await self._api.post("/api/notifications/send", data=data)
-            self._display.show_result(
-                True,
-                t("lcd.auto_done") if schedule_id else t("lcd.manual_done"),
-                t("lcd.drop_warning"),
+        if self.optional_failures:
+            self._logger.warning(
+                f"Dispense finished with {len(self.optional_failures)} optional failure(s), proceeding to open drawer."
             )
 
-            return True
+        self._logger.info("Opening drawer...")
+        self._stepper_drawer.rotate(1 / 6, direction="cw")
+        await asyncio.sleep_ms(300)
 
-        print(t("drop.success"))
-        data["level"] = "info"
-        data["title"] = t("notification.drop_completed")
-        data["payload"] = {}
+        self._logger.info(f"Waiting up to {open_timeout}s for user to take medicine...")
+        await self._wait_for_user_or_timeout(open_timeout)
 
-        if schedule_id:
-            await self._schedule.update_status(schedule_id, "completed")
-            data["body"] = t("notification.schedule_completed")
-        else:
-            data["body"] = t("notification.drop_success")
+        self._logger.info("Closing drawer...")
+        self._stepper_drawer.rotate(1 / 6, direction="ccw")
+        await asyncio.sleep_ms(300)
 
-        await self._api.post("/api/notifications/send", data=data)
-        self._display.show_result(
-            True,
-            t("lcd.auto_done") if schedule_id else t("lcd.manual_done"),
-            t("lcd.drop_completed"),
+        self._logger.info(
+            f"Opening discard gate and checking left-over pills for {close_timeout}s..."
         )
+        self._check_detected = False
+        self._last_check_ms = 0
+        self._sensor_check.irq(trigger=DROP_IRQ_TRIGGER, handler=self._on_pill_check)
 
+        try:
+            self._stepper_discard.rotate(1 / 16, direction="cw")
+
+            start_check_ms = time.ticks_ms()
+            close_timeout_ms = close_timeout * 1000
+
+            while time.ticks_diff(time.ticks_ms(), start_check_ms) < close_timeout_ms:
+                if self._check_detected or self._sensor_check.value() == 0:
+                    msg = _t("notify_untaken_medicine")
+                    self._logger.error(msg)
+                    self._stepper_discard.rotate(1 / 16, direction="ccw")
+                    await self._notify.send(
+                        "error",
+                        _t("notify_medicine_not_taken"),
+                        msg,
+                        {"optional_failures": self.optional_failures},
+                        schedule_id,
+                    )
+                    return False
+
+                await asyncio.sleep_ms(50)
+
+        finally:
+            self._sensor_check.irq(handler=None)
+
+        self._logger.info(
+            "No left-over pills detected. Closing discard gate (1/16, ccw)..."
+        )
+        self._stepper_discard.rotate(1 / 16, direction="ccw")
+
+        if self.optional_failures:
+            msg = _t(
+                "notify_dispense_optional_failures", count=len(self.optional_failures)
+            )
+
+            self._logger.warning(msg)
+            await self._notify.send(
+                "warning",
+                _t("notify_schedule_warning" if schedule_id else "notify_drop_warning"),
+                msg,
+                {"optional_failures": self.optional_failures},
+                schedule_id,
+            )
+        else:
+            msg = _t("notify_dispense_success")
+            self._logger.info(msg)
+            await self._notify.send(
+                "info",
+                _t(
+                    "notify_schedule_completed"
+                    if schedule_id
+                    else "notify_drop_completed"
+                ),
+                msg,
+                {},
+                schedule_id,
+            )
+
+        self._logger.info("Medicine schedule cycle completed successfully!")
         return True
 
-    @classmethod
-    def create(cls) -> Drop:
-        if cls.__instance is None:
-            cls.__instance = Drop()
-        return cls.__instance
+    async def _wait_for_user_or_timeout(self, timeout_s: int) -> None:
+        self._button.clear_pressed()
+        start_ms = time.ticks_ms()
+        timeout_ms = timeout_s * 1000
+        last_beep_ms = time.ticks_ms() - 1000  # pyright: ignore[reportOperatorIssue]
+
+        while time.ticks_diff(time.ticks_ms(), start_ms) < timeout_ms:
+            if self._button.consume_pressed():
+                self._logger.info("User pressed button!")
+                self._buzzer.play(880, 0.1)
+                break
+
+            now = time.ticks_ms()
+            if time.ticks_diff(now, last_beep_ms) >= 600:
+                last_beep_ms = now
+                self._buzzer.play(440, 0.1)
+
+            await asyncio.sleep_ms(50)
+        else:
+            self._logger.warning(
+                f"Open timeout ({timeout_s}s) reached without button press."
+            )
+
+    async def _dispense_slot(
+        self, slot: str, quantity: int, timeout_s: int = 5
+    ) -> bool:
+        servo = self._servos.get(slot)
+        if not servo:
+            self._logger.error(f"Invalid slot: {slot}")
+            return False
+
+        if quantity <= 0:
+            return True
+
+        self._logger.info(f"Slot {slot}: Dispensing {quantity} pill(s)...")
+        self._drop_count = 0
+        last_seen_count = 0
+        start_ms = time.ticks_ms()
+        timeout_ms = timeout_s * 1000
+
+        try:
+            servo.value = SERVO_SLOW_SPEED
+
+            while self._drop_count < quantity:
+                if self._drop_count > last_seen_count:
+                    last_seen_count = self._drop_count
+                    start_ms = time.ticks_ms()
+                    self._logger.info(
+                        f"Slot {slot}: Dropped {self._drop_count}/{quantity}"
+                    )
+                    if self._drop_count < quantity:
+                        servo.off()
+                        await asyncio.sleep_ms(150)
+                        servo.value = SERVO_SLOW_SPEED
+
+                if time.ticks_diff(time.ticks_ms(), start_ms) > timeout_ms:
+                    self._logger.error(
+                        f"Slot {slot}: Timeout after {timeout_s}s! "
+                        f"Only dropped {self._drop_count}/{quantity}"
+                    )
+                    return False
+
+                await asyncio.sleep_ms(10)
+
+            self._logger.info(f"Slot {slot}: Completed ({quantity}/{quantity})")
+            return True
+
+        finally:
+            servo.off()

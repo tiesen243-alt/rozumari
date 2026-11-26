@@ -1,11 +1,34 @@
-# Font used for ST7735 display.
+from micropython import const
 
-# Each character uses 5 bytes.
-# index using ASCII value * 5.
-# Each byte contains a column of pixels.
-# The character may be 8 pixels high and 5 wide.
+# Button / Switch / Buzzer
+MODE_SWITCH = const(15)
+BUTTON = const(21)
+BUZZER = const(20)
 
-sysfont = {
+# Sensors
+SENSOR_DROP = const(26)
+SENSOR_CHECK = const(27)
+
+# Servo
+SERVO00 = const(0)
+SERVO01 = const(1)
+SERVO10 = const(2)
+SERVO11 = const(3)
+
+# Steppers
+STEPPER_DRAWER = (const(7), const(6), const(5), const(4))
+STEPPER_DISCARD = (const(19), const(18), const(17), const(16))
+
+# LCD
+LCD_SCK = const(10)
+LCD_SDA = const(11)
+LCD_DC = const(12)
+LCD_RS = const(13)
+LCD_CS = const(14)
+
+
+# Font
+FONT = {
     "width": 5,
     "height": 8,
     "start": 0,

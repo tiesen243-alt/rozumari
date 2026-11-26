@@ -1,108 +1,99 @@
-import json
-
 from lib.config import Config
 
-
-class Translation:
-    __instance: Translation | None = None
-
-    def __init__(self, locale_dir: str = "/data/locales") -> None:
-        self._locale_dir = locale_dir
-        self._language = ""
-        self._translations: dict = {}
-        self._fallback: dict = {}
-        self._load_language("en")
-
-    def _load_file(self, language: str) -> dict:
-        """
-        Load the translation file for the specified language.
-
-        Args:
-            language: The language code (e.g., 'en', 'es') for which to load the translation file.
-
-        Returns:
-            A dictionary containing the translation key-value pairs for the specified language.
-        """
-
-        path = f"{self._locale_dir}/{language}.json"
-        try:
-            with open(path, "r") as f:
-                data = json.load(f)
-                return data if isinstance(data, dict) else {}
-        except Exception as error:
-            print(f"[i18n] Failed to load locale '{language}': {error}")
-            return {}
-
-    def _load_language(self, language: str) -> None:
-        """
-        Load the translation files for the specified language and set up the fallback.
-
-        Args:
-            language: The language code (e.g., 'en', 'es') for which to load the translation files.
-        """
-        language = str(language or "en").lower().split("-")[0]
-        self._fallback = self._load_file("en")
-        self._translations = (
-            self._fallback if language == "en" else self._load_file(language)
-        )
-        self._language = language
-
-    def _sync_language(self) -> None:
-        """
-        Synchronize the current language with the configuration settings.
-        This method checks the current language setting in the configuration and loads
-        the appropriate translation files if the language has changed.
-        """
-        config = Config.create()
-        language = config.get("language", "en")
-        language = str(language or "en").lower().split("-")[0]
-        if language != self._language:
-            self._load_language(language)
-
-    def translate(self, key: str, **params) -> str:
-        """
-        Translate the given key into the current language, applying any provided parameters.
-
-        Args:
-            key: The translation key to look up.
-            params: Optional keyword arguments to format the translation string.
-
-        Returns:
-            The translated string with parameters applied, or the key itself if no translation is found.
-        """
-        self._sync_language()
-
-        value = self._translations.get(key)
-        if value is None:
-            value = self._fallback.get(key, key)
-
-        value = str(value)
-        if params:
-            try:
-                value = value.format(**params)
-            except Exception:
-                pass
-        return value
-
-    def use(self):
-        """
-        Return the translate method for use as a callable function.
-
-        Returns:
-            A callable function that translates keys into the current language.
-        """
-        return self.translate
-
-    def __call__(self, key: str, **params) -> str:
-        return self.translate(key, **params)
-
-    @classmethod
-    def create(
-        cls, locale_dir: str = "/data/locales", force: bool = False
-    ) -> Translation:
-        if cls.__instance is None or force:
-            cls.__instance = cls(locale_dir)
-        return cls.__instance
+_TRANSLATIONS = {
+    "en": {
+        # LCD
+        "lcd_connecting_wifi": "Connecting to {ssid}...",
+        "lcd_syncing_time": "Syncing time...",
+        "lcd_syncing_info": "Syncing info...",
+        "lcd_advertise_at": "Advertise at",
+        "lcd_generating_qr": "Generating QR...",
+        "lcd_qr_failed": "Failed to load QR!",
+        "lcd_time_items_status": "Time  | Items | Status",
+        "lcd_no_schedules": "No schedules",
+        # Status
+        "status_pending": "pending",
+        "status_processing": "processing",
+        "status_completed": "completed",
+        "status_failed": "failed",
+        # BLE
+        "ble_wifi_success": "WiFi connected and saved!",
+        "ble_wifi_failed": "Could not connect to WiFi '{ssid}'!",
+        "ble_general_saved": "General config saved!",
+        "ble_timeout_saved": "Timeout config saved!",
+        "ble_config_error": "Config error: {error}",
+        # Notify
+        "notify_required_failures": "Dispense finished with {count} required failure(s).",
+        "notify_schedule_failed": "Schedule failed",
+        "notify_drop_failed": "Drop failed",
+        "notify_medicine_not_taken": "Medicine not taken",
+        "notify_untaken": "Untaken medicine detected! User did not take pills.",
+        "notify_optional_failures": "Medicine taken, but {count} optional item(s) failed to drop.",
+        "notify_schedule_warning": "Schedule completed with warning",
+        "notify_drop_warning": "Drop completed with warning",
+        "notify_success": "Medicine schedule cycle completed successfully!",
+        "notify_schedule_completed": "Schedule completed",
+        "notify_drop_completed": "Drop completed",
+        # Emit
+        "emit_sync_info_received": "Sync info command received",
+        "emit_sync_info_success": "Sync info command success!",
+        "emit_sync_info_failed": "Sync info command failed!",
+        "emit_sync_schedule_received": "Sync schedule command received",
+        "emit_sync_schedule_success": "Sync schedule command success!",
+        "emit_sync_schedule_failed": "Sync schedule command failed!",
+        "emit_drop_received": "Drop command received",
+        "emit_drop_success": "Drop command success!",
+        "emit_drop_failed": "Drop command failed!",
+    },
+    "vi": {
+        # LCD
+        "lcd_connecting_wifi": "Dang ket noi {ssid}...",
+        "lcd_syncing_time": "Dang dong bo thoi gian...",
+        "lcd_syncing_info": "Dang dong bo thong tin...",
+        "lcd_advertise_at": "Dia chi BLE",
+        "lcd_generating_qr": "Dang tao ma QR...",
+        "lcd_qr_failed": "Khong the tai ma QR!",
+        "lcd_time_items_status": "Gio   | Thuoc | TThai",
+        "lcd_no_schedules": "Khong co lich",
+        # Status
+        "status_pending": "cho",
+        "status_processing": "dang chay",
+        "status_completed": "xong",
+        "status_failed": "loi",
+        # BLE
+        "ble_wifi_success": "Da ket noi va luu WiFi!",
+        "ble_wifi_failed": "Khong the ket noi WiFi '{ssid}'!",
+        "ble_general_saved": "Da luu cau hinh chung!",
+        "ble_timeout_saved": "Da luu cau hinh timeout!",
+        "ble_config_error": "Loi cau hinh: {error}",
+        # Notify
+        "notify_required_failures": "Hoàn tất phát thuốc nhưng có {count} mục bắt buộc thất bại.",
+        "notify_schedule_failed": "Lịch phát thuốc thất bại",
+        "notify_drop_failed": "Phát thuốc thất bại",
+        "notify_medicine_not_taken": "Thuốc chưa được lấy",
+        "notify_untaken": "Phát hiện thuốc chưa được lấy! Người dùng chưa lấy thuốc.",
+        "notify_optional_failures": "Đã lấy thuốc, nhưng có {count} mục không bắt buộc không phát được.",
+        "notify_schedule_warning": "Lịch phát thuốc hoàn tất nhưng có cảnh báo",
+        "notify_drop_warning": "Phát thuốc hoàn tất nhưng có cảnh báo",
+        "notify_success": "Chu trình phát thuốc đã hoàn tất thành công!",
+        "notify_schedule_completed": "Lịch phát thuốc đã hoàn tất",
+        "notify_drop_completed": "Phát thuốc đã hoàn tất",
+        # Emit
+        "emit_sync_info_received": "Đã nhận lệnh đồng bộ thông tin",
+        "emit_sync_info_success": "Đồng bộ thông tin thành công!",
+        "emit_sync_info_failed": "Đồng bộ thông tin thất bại!",
+        "emit_sync_schedule_received": "Đã nhận lệnh đồng bộ lịch",
+        "emit_sync_schedule_success": "Đồng bộ lịch thành công!",
+        "emit_sync_schedule_failed": "Đồng bộ lịch thất bại!",
+        "emit_drop_received": "Đã nhận lệnh phát thuốc",
+        "emit_drop_success": "Phát thuốc thành công!",
+        "emit_drop_failed": "Phát thuốc thất bại!",
+    },
+}
 
 
-t = Translation.create().use()
+def translate(key: str, **values) -> str:
+    language = Config().general.get("language", "en")
+    translations = _TRANSLATIONS.get(language, _TRANSLATIONS["en"])
+    message = translations.get(key, _TRANSLATIONS["en"].get(key, key))
+    return message.format(**values) if values else message

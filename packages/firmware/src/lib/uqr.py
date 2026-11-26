@@ -1,3 +1,5 @@
+# type: ignore
+
 """
 Copyright (c) 2018, Joseph Schilz
 All rights reserved.
